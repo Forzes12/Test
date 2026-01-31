@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Black House - Gaming Forum</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase SDK -->
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <a href="#" class="logo" onclick="navigate('home')">
+          <span class="logo-icon">🏠</span>
+          <span class="logo-text">Black House</span>
+        </a>
+        
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="Search..." onkeypress="handleSearch(event)">
+          <button onclick="search()">Search</button>
+        </div>
+        
+        <nav class="nav-links">
+          <a href="#" onclick="navigate('home')">Home</a>
+          <a href="#" onclick="navigate('leaderboard')">Leaderboard</a>
+        </nav>
+        
+        <div class="user-area" id="userArea">
+          <button class="btn-primary" onclick="openModal('authModal')">Login / Register</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Auth Modal -->
+      <div id="authModal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal('authModal')">&times;</span>
+          <h2>Welcome to Black House</h2>
+          
+          <div class="auth-tabs">
+            <button class="tab-btn active" onclick="switchAuthTab('login')">Login</button>
+            <button class="tab-btn" onclick="switchAuthTab('register')">Register</button>
+          </div>
+          
+          <form id="loginForm" onsubmit="handleLogin(event)">
+            <input type="text" name="username" placeholder="Username or Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit" class="btn-primary">Login</button>
+          </form>
+          
+          <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit" class="btn-primary">Register</button>
+          </form>
+          
+          <div class="demo-info" id="demoInfo" style="display: none;">
+            <p>Demo: <strong>DemoUser</strong> or <strong>GameMaster</strong></p>
+            <p>Password: <code>demo123</code></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Topic Modal -->
+      <div id="createTopicModal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal('createTopicModal')">&times;</span>
+          <h2>Create New Topic</h2>
+          <form onsubmit="handleCreateTopic(event)">
+            <input type="text" id="topicTitle" placeholder="Topic Title" required>
+            <select id="topicCategory" required>
+              <option value="">Select Category</option>
+            </select>
+            <textarea id="topicContent" placeholder="Write your post..." rows="8" required></textarea>
+            <button type="submit" class="btn-primary">Create Topic</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Pages Container -->
+      <div id="pages">
+        <!-- Home Page with 3-column layout -->
+        <div id="page-home" class="page active">
+          <div class="forum-layout">
+            <!-- Left Sidebar -->
+            <aside class="sidebar-left">
+              <div class="section-header">
+                <span class="section-title">📁 Categories</span>
+              </div>
+              <div class="categories-grid" id="categoriesGrid"></div>
+              
+              <div class="section-header" style="margin-top: 1.5rem;">
+                <span class="section-title">🏆 Top Players</span>
+              </div>
+              <div id="sidebarLeaderboard"></div>
+            </aside>
+            
+            <!-- Main Content -->
+            <section class="main-section">
+              <div class="section-header">
+                <span class="section-title">🔥 Latest Topics</span>
+                <button class="btn-primary" onclick="openCreateTopic()">+ New Topic</button>
+              </div>
+              <table class="forum-table" id="recentTopicsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Topic</th>
+                    <th style="width: 25%;">Author</th>
+                    <th style="width: 12%; text-align: center;">Replies</th>
+                    <th style="width: 13%; text-align: center;">Views</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTopics"></tbody>
+              </table>
+              <div id="paginationControls" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+            </section>
+            
+            <!-- Right Sidebar -->
+            <aside class="sidebar-right">
+              <div class="section-header">
+                <span class="section-title">📊 Forum Stats</span>
+              </div>
+              <div id="forumStats"></div>
+              
+              <div class="section-header" style="margin-top: 1rem;">
+                <span class="section-title">🛠️ Quick Links</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <a href="#" onclick="navigate('leaderboard')" style="padding: 0.5rem; background: var(--bg-tertiary); border-radius: 6px; text-align: center;">🏆 Leaderboard</a>
+                <a href="#" onclick="openCreateTopic()" style="padding: 0.5rem; background: var(--bg-tertiary); border-radius: 6px; text-align: center;">✏️ Create Topic</a>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- Category Page -->
+        <div id="page-category" class="page">
+          <div class="forum-layout">
+            <aside class="sidebar-left">
+              <div class="section-header">
+                <span class="section-title">📁 Categories</span>
+              </div>
+              <div class="categories-grid" id="categorySidebar"></div>
+            </aside>
+            
+            <section class="main-section">
+              <div class="section-header">
+                <span class="section-title" id="categoryTitle">Topics</span>
+                <button class="btn-primary" onclick="openCreateTopic()">+ New Topic</button>
+              </div>
+              <table class="forum-table" id="categoryTopicsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 55%;">Topic</th>
+                    <th style="width: 20%;">Author</th>
+                    <th style="width: 10%; text-align: center;">Replies</th>
+                    <th style="width: 15%; text-align: center;">Last Reply</th>
+                  </tr>
+                </thead>
+                <tbody id="categoryTopics"></tbody>
+              </table>
+              <div id="categoryPagination" style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;"></div>
+            </section>
+            
+            <aside class="sidebar-right">
+              <div class="section-header">
+                <span class="section-title">📋 Category Info</span>
+              </div>
+              <div id="categoryInfo"></div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- Topic Page -->
+        <div id="page-topic" class="page">
+          <div class="topic-header" id="topicHeader"></div>
+          <div class="messages-container" id="messagesContainer"></div>
+          <div class="reply-form" id="replyForm">
+            <h3>Post a Reply</h3>
+            <textarea id="replyContent" placeholder="Write your reply..." rows="5" required></textarea>
+            <button onclick="handleReply()" class="btn-primary">Post Reply</button>
+          </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="page-profile" class="page">
+          <div class="profile-header" id="profileHeader"></div>
+          <div class="profile-content">
+            <div class="achievements-section">
+              <h3>🏆 Perfects</h3>
+              <div class="achievements-list" id="achievementsSection"></div>
+            </div>
+            <div>
+              <h3>📝 Recent Topics</h3>
+              <table class="forum-table" id="userTopicsTable">
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th style="width: 20%;">Category</th>
+                    <th style="width: 15%; text-align: center;">Replies</th>
+                    <th style="width: 20%;">Date</th>
+                  </tr>
+                </thead>
+                <tbody id="userTopics"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Page -->
+        <div id="page-leaderboard" class="page">
+          <h2>🏆 Leaderboard</h2>
+          <div class="leaderboard-tabs">
+            <button class="tab-btn active" onclick="loadLeaderboard('xp')">By XP</button>
+            <button class="tab-btn" onclick="loadLeaderboard('messages')">By Messages</button>
+            <button class="tab-btn" onclick="loadLeaderboard('topics')">By Topics</button>
+          </div>
+          <table class="forum-table" id="leaderboardTable">
+            <thead>
+              <tr>
+                <th style="width: 10%;">Rank</th>
+                <th style="width: 50%;">User</th>
+                <th style="width: 20%;">Level</th>
+                <th style="width: 20%; text-align: right;">Value</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardList"></tbody>
+          </table>
+        </div>
+
+        <!-- Search Results Page -->
+        <div id="page-search" class="page">
+          <h2>🔍 Search Results</h2>
+          <div id="searchResults"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- Firebase Config and App -->
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
